@@ -181,6 +181,7 @@ drawCanvas.addEventListener(
 );
 
 // --- TOUCH MOVE ---
+let redrawScheduled = false;
 drawCanvas.addEventListener(
   "touchmove",
   (e) => {
@@ -225,8 +226,12 @@ drawCanvas.addEventListener(
       }
     }
 
-    if (needsRedraw) {
-      redraw([...undoStack, ...Array.from(activeTouches.values())]);
+    if (needsRedraw && !redrawScheduled) {
+      redrawScheduled = true;
+      requestAnimationFrame(() => {
+        redraw([...undoStack, ...Array.from(activeTouches.values())]);
+        redrawScheduled = false;
+      });
     }
   },
   { passive: false },
