@@ -176,6 +176,15 @@ drawCanvas.addEventListener(
         startY = t.clientY;
       }
     }
+
+    // Ensure active strokes are visible immediately
+    if (activeTouches.size > 0 && !redrawScheduled) {
+      redrawScheduled = true;
+      requestAnimationFrame(() => {
+        redraw([...undoStack, ...Array.from(activeTouches.values())]);
+        redrawScheduled = false;
+      });
+    }
   },
   { passive: false },
 );
