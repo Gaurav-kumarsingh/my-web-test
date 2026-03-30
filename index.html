@@ -1,0 +1,313 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>PDF Whiteboard Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #1e1e2f;
+        font-family: sans-serif;
+      }
+      /* LEFT TOOLBAR */
+      .leftbar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 34px;
+        height: 100%;
+        background: #2b2b40;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 3px;
+        z-index: 50;
+      }
+      /* RIGHT TOOLBAR */
+      .rightbar {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: 34px;
+        height: 100%;
+        background: #2b2b40;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 3px;
+        z-index: 50;
+      }
+      /* BOTTOM BAR */
+      .bottombar {
+        position: fixed;
+        bottom: 0;
+        left: 34px;
+        right: 34px;
+        height: 35px;
+        background: #2b2b40;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        z-index: 50;
+      }
+      button {
+        width: 34px;
+        height: 34px;
+        border: none;
+        border-radius: 4px;
+        background: #6c6d6d;/*4c4cff */
+        color: white;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      button:hover {
+        background: #6a6aff;
+      }
+      input[type="color"] {
+        width: 26px;
+        height: 20px;
+        border: none;
+      }
+      input[type="range"] {
+        width: 70px;
+      }
+      #container {
+        position: absolute;
+        left: 34px;
+        right: 34px;
+        top: 0;
+        bottom: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+      #viewer {
+        position: relative;
+        transform-origin: center;
+      }
+      canvas {
+        display: block;
+      }
+      #drawCanvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 5;
+      }
+
+/* PDF Buttons inside menu */
+.pdfBtn{
+  width:220px;
+  padding:12px 16px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(135deg,#4c4cff,#6a6aff);
+  color:white;
+  font-size:16px;
+  font-weight:600;
+  text-align:left;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.3);
+  transition:0.2s;
+}
+
+.pdfBtn:hover{
+  background:linear-gradient(135deg,#6a6aff,#8a8aff);
+  transform:scale(1.05);
+}
+
+/*background color match*/
+body {
+  background: #1e1e2f;
+}
+
+/* date and time */
+    #timeDisplay,
+    #dateDisplay {
+      text-shadow: 0 0 4px black;
+      /* Makes white text stand out */
+    }
+
+    </style>
+  </head>
+  <body>
+    <!-- LEFT BAR -->
+    <div class="leftbar">
+    <button onclick="togglePDFLibrary()">📚</button>
+      <button onclick="setTool('draw')">✏</button>
+      <button onclick="setTool('highlight')">🖍</button>
+      <button onclick="setTool('erase')">🧽</button>
+      <button onclick="setTool('pan')">✋</button>
+      <button onclick="undo()">↩</button>
+      <button onclick="redo()">↪</button>
+      <button onclick="clearCanvas()">❌</button>
+    </div>
+
+<div id="pdfLibrary" style="
+position:fixed;
+left:60px;
+top:50px;
+background:#2b2b40;
+padding:12px;
+border-radius:12px;
+display:none;
+flex-direction:column;
+gap:12px;
+z-index:100;
+">
+
+<div style="color:white;font-size:14px;font-weight:600;margin-bottom:8px;">FLAT</div>
+
+<button class="pdfBtn" id="blankpage" onclick="loadWebsitePDF('pdf/blank.pdf')">New</button>
+<button class="pdfBtn" onclick="loadWebsitePDF('pdf/transaction.pdf')">Transaction</button>
+<button class="pdfBtn" onclick="loadWebsitePDF('pdf/PDA.pdf')">PDA</button>
+
+
+</div>
+
+
+</div>
+
+    <!-- RIGHT BAR -->
+    <div class="rightbar">
+      <button onclick="setTool('rect')">▭</button>
+      <button onclick="setTool('circle')">◯</button>
+      <button onclick="setTool('line')">／</button>
+      <button onclick="setTool('arrow')">→</button>
+<button onclick="toggleFullscreen()" id="fsBtn">⛶</button>
+<!-- some change in upper line -->
+      <button onclick="addBlankPage()">➕</button>
+      <button onclick="removePage()">🗑</button>
+      <button onclick="zoomIn()">＋</button>
+      <button onclick="zoomOut()">－</button>
+      <button onclick="fit()">⤢</button>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="bottombar">
+      <button onclick="prevPage()">◀</button>
+      <input type="file" id="fileInput" accept="application/pdf" />
+      <span id="pageInfo" style="color: white; font-size: 12px"
+        >Page 0 / 0</span
+      >
+      <!-- Color button -->
+      <div style="position: relative">
+        <!-- Main color button -->
+        <button
+          id="mainColorBtn"
+          style="background: #ff0000"
+          onclick="toggleColorPalette()"
+        ></button>
+
+        <!-- Horizontal color palette -->
+        <div
+          id="colorPalette"
+          style="
+            display: none;
+            position: absolute;
+            bottom: 35px;
+            left: auto;
+            transform: translateX(-20%);
+            display: flex;
+            flex-direction: row;
+            gap: 3px;
+            background: #2b2b40;
+            padding: 3px;
+            border-radius: 4px;
+          "
+        >
+          <button
+            style="background: #ff0000"
+            onclick="selectColor('#ff0000')"
+          ></button>
+          <button
+            style="background: #00ff00"
+            onclick="selectColor('#00ff00')"
+          ></button>
+          <button
+            style="background: #0000ff"
+            onclick="selectColor('#0000ff')"
+          ></button>
+          <button
+            style="background: #ffff00"
+            onclick="selectColor('#ffff00')"
+          ></button>
+          <button
+            style="background: #ff00ff"
+            onclick="selectColor('#ff00ff')"
+          ></button>
+          <button
+            style="background: #00ffff"
+            onclick="selectColor('#00ffff')"
+          ></button>
+          <button
+            style="background: #000000"
+            onclick="selectColor('#000000')"
+          ></button>
+          <button
+            style="background: #ffffff"
+            onclick="selectColor('#ffffff')"
+          ></button>
+        </div>
+
+        <!-- Hidden color picker for pen drawing -->
+        <input
+          type="color"
+          id="colorPicker"
+          value="#ff0000"
+          style="display: none"
+        />
+      </div>
+      <input type="range" id="brushSize" min="1" max="30" value="4" />
+      <button onclick="nextPage()">▶</button>
+    </div>
+
+    <div id="container">
+      <div id="viewer">
+        <canvas id="pdfCanvas"></canvas>
+      </div>
+    </div>
+
+    <canvas id="drawCanvas"></canvas>
+
+   <!-- Top right time -->
+  <div id="timeDisplay" style="
+  position: fixed;
+  top: 10px;
+  right: 45px;
+  color: white;
+  font-size: 40px;
+  font-family: monospace;
+  z-index: 100;
+"></div>
+
+  <!-- Bottom right date -->
+  <div id="dateDisplay" style="
+  position: fixed;
+  bottom: 5px;
+  right: 47px;
+  color: white;
+  font-size: 25px;
+  font-family: sans-serif;
+  z-index: 100;
+"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
