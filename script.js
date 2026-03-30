@@ -235,12 +235,8 @@ drawCanvas.addEventListener(
       }
     }
 
-    if (needsRedraw && !redrawScheduled) {
-      redrawScheduled = true;
-      requestAnimationFrame(() => {
-        redraw([...undoStack, ...Array.from(activeTouches.values())]);
-        redrawScheduled = false;
-      });
+    if (needsRedraw) {
+      redraw([...undoStack, ...Array.from(activeTouches.values())]);
     }
   },
   { passive: false },
