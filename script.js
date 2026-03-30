@@ -198,6 +198,7 @@ drawCanvas.addEventListener(
       return;
     }
 
+    let needsRedraw = false;
     for (let t of e.changedTouches) {
       const stroke = activeTouches.get(t.identifier);
       if (!stroke) continue;
@@ -207,31 +208,8 @@ drawCanvas.addEventListener(
         stroke.tool === "erase" ||
         stroke.tool === "highlight"
       ) {
-        const lastPoint = stroke.path[stroke.path.length - 1];
         stroke.path.push({ x: t.clientX, y: t.clientY });
-
-        ctx.beginPath();
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(t.clientX, t.clientY);
-
-        ctx.lineCap = "round";
-        if (stroke.tool === "erase") {
-          ctx.globalCompositeOperation = "destination-out";
-          ctx.lineWidth = stroke.width * 2;
-        } else if (stroke.tool === "highlight") {
-          ctx.globalCompositeOperation = "source-over";
-          ctx.lineWidth = stroke.width * 5;
-          ctx.globalAlpha = 0.1;
-          ctx.strokeStyle = stroke.color;
-        } else {
-          ctx.globalCompositeOperation = "source-over";
-          ctx.globalAlpha = 1;
-          ctx.lineWidth = stroke.width;
-          ctx.strokeStyle = stroke.color;
-        }
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = "source-over";
+        needsRedraw = true;
       } else {
         // Update shape coordinates dynamically
         stroke.shape.x2 = t.clientX;
@@ -243,10 +221,12 @@ drawCanvas.addEventListener(
           stroke.shape.cy = (stroke.shape.y1 + stroke.shape.y2) / 2;
           stroke.shape.r = Math.hypot(dx, dy) / 2;
         }
-
-        // Redraw all strokes plus current one
-        redraw([...undoStack, stroke]);
+        needsRedraw = true;
       }
+    }
+
+    if (needsRedraw) {
+      redraw([...undoStack, ...Array.from(activeTouches.values())]);
     }
   },
   { passive: false },
