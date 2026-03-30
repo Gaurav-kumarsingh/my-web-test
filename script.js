@@ -261,11 +261,29 @@ drawCanvas.addEventListener(
       const stroke = activeTouches.get(t.identifier);
       if (!stroke) continue;
 
-      undoStack.push(stroke);
-      redoStack.length = 0;
-      redraw(undoStack);
+      // Only add meaningful strokes to undo stack
+      let shouldAdd = true;
+      if (stroke.tool === "draw" || stroke.tool === "erase" || stroke.tool === "highlight") {
+        if (stroke.path.length <= 1) shouldAdd = false;
+      } else {
+        if (stroke.shape.x1 === stroke.shape.x2 && stroke.shape.y1 === stroke.shape.y2) shouldAdd = false;
+      }
+
+      if (shouldAdd) {
+        undoStack.push(stroke);
+        redoStack.length = 0;
+      }
 
       activeTouches.delete(t.identifier);
+    }
+
+    // Schedule redraw to include completed and active strokes
+    if (!redrawScheduled) {
+      redrawScheduled = true;
+      requestAnimationFrame(() => {
+        redraw([...undoStack, ...Array.from(activeTouches.values())]);
+        redrawScheduled = false;
+      });
     }
   },
   { passive: false },
