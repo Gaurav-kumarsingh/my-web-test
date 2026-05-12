@@ -557,10 +557,6 @@ function toggleFullscreen() {
       let minutes = String(now.getMinutes()).padStart(2, '0');
       document.getElementById('timeDisplay').innerText = `${hours}:${minutes}`;
 
-      // --- Date (Short format: Fri, 19 Mar)
-      const options = { weekday: 'short', day: 'numeric', month: 'short' };
-      document.getElementById('dateDisplay').innerText = now.toLocaleDateString('en-IN', options);
-    }
 
     // Update every second
     updateDateTime();
